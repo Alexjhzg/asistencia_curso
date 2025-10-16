@@ -1,0 +1,310 @@
+{% extends 'asistencia/base.html' %}
+
+{% block title %}Formulario de Asistencia{% endblock %}
+
+{% block content %}
+    <h3>Registro de Asistencia</h3>
+    <div id="surveyElement"></div>
+    <div id="surveyResult"></div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        // Datos iniciales pasados desde Django
+        const organizaciones = {{ organizaciones|safe }};
+        const estados = {{ estados|safe }};
+        const coordinaciones = {{ coordinaciones|safe }};
+        const alianzas = {{ alianzas|safe }};
+        const ubicaciones = {{ ubicaciones|safe }};
+        const cursos = {{ cursos|safe }};
+
+        // Definir el JSON del modelo de formulario SurveyJS
+        var json = {
+            title: "Formulario de Asistencia al Curso",
+            showQuestionNumbers: "off",
+            pages: [
+                {
+                    name: "datos_personales",
+                    elements: [
+                        {
+                            type: "text",
+                            name: "cedula",
+                            title: "Cédula de identidad",
+                            inputType: "number",
+                            required: true,
+                            validators: [
+                                {
+                                    type: "regex",
+                                    regex: "^[0-9]{7,8}$",
+                                    text: "Verifique su número de cédula (7 u 8 dígitos)."
+                                }
+                            ]
+                        },
+                        {
+                            type: "text",
+                            name: "nombre",
+                            title: "Nombre",
+                            readOnly: true // Se llenará dinámicamente
+                        },
+                        {
+                            type: "text",
+                            name: "apellido",
+                            title: "Apellido",
+                            readOnly: true // Se llenará dinámicamente
+                        },
+                        {
+                            type: "text",
+                            name: "correo",
+                            title: "Correo Electrónico",
+                            readOnly: true // Se llenará dinámicamente
+                        },
+                        {
+                            type: "text",
+                            name: "edad",
+                            title: "Edad",
+                            inputType: "number",
+                            readOnly: true // Se llenará dinámicamente
+                        },
+                        {
+                            type: "text",
+                            name: "profesion",
+                            title: "Profesión",
+                            readOnly: true // Se llenará dinámicamente
+                        },
+                        {
+                            type: "dropdown",
+                            name: "sexo",
+                            title: "Sexo",
+                            choicesByUrl: {
+                                url: "/api/choices/sexo/", // Ruta para obtener opciones dinámicamente
+                                valueName: "value", // Campo que usa SurveyJS para el valor
+                                titleName: "text"    // Campo que usa SurveyJS para el texto
+                            },
+                            readOnly: true // Se llenará dinámicamente
+                        },
+                        {
+                            type: "dropdown",
+                            name: "nivel_educativo",
+                            title: "Nivel Educativo",
+                            choicesByUrl: {
+                                url: "/api/choices/nivel_educativo/", // Ruta para obtener opciones dinámicamente
+                                valueName: "value",
+                                titleName: "text"
+                            },
+                            readOnly: true // Se llenará dinámicamente
+                        }
+                    ],
+                    title: "Datos Personales"
+                },
+                {
+                    name: "datos_laborales",
+                    elements: [
+                        {
+                            type: "dropdown",
+                            name: "organizacion",
+                            title: "¿A cuál organización pertenece?",
+                            choices: organizaciones.map(o => ({value: o.id, text: o.nombre})),
+                            required: true
+                        },
+                        {
+                            type: "dropdown",
+                            name: "gerencia",
+                            title: "¿A qué Gerencia pertenece?",
+                            choices: [], // Se llenará dinámicamente
+                            required: true,
+                            choicesByUrl: {
+                                url: "/api/gerencias/?organizacion_id={organizacion}", // URL dinámica
+                                valueName: "value",
+                                titleName: "text"
+                            }
+                        },
+                        {
+                            type: "dropdown",
+                            name: "coordinacion",
+                            title: "Gerencia/Coordinación de adscripción",
+                            choices: coordinaciones.map(c => ({value: c.id, text: c.nombre})),
+                            required: true
+                        },
+                        {
+                            type: "dropdown",
+                            name: "cargo_segen",
+                            title: "¿Cuál es su cargo en el SEGEN?",
+                            visibleIf: "{organizacion} = '2'", // Visible solo si organización es SEGEN
+                            choices: [], // Se llenará dinámicamente
+                            choicesByUrl: {
+                                url: "/api/choices/cargo_segen/", // Ruta para obtener opciones dinámicamente
+                                valueName: "value",
+                                titleName: "text"
+                            }
+                        },
+                        {
+                            type: "dropdown",
+                            name: "cargo",
+                            title: "¿Cuál es su cargo?",
+                            visibleIf: "{organizacion} = '1'", // Visible solo si organización es INE
+                            choices: [], // Se llenará dinámicamente
+                            choicesByUrl: {
+                                url: "/api/cargos/?gerencia_id={gerencia}", // URL dinámica
+                                valueName: "value",
+                                titleName: "text"
+                            }
+                        },
+                        {
+                            type: "dropdown",
+                            name: "estado",
+                            title: "Estado",
+                            choices: estados.map(e => ({value: e.id, text: e.nombre}))
+                        },
+                        {
+                            type: "dropdown",
+                            name: "alianza",
+                            title: "Alianza",
+                            choices: alianzas.map(a => ({value: a.id, text: a.nombre}))
+                        }
+                    ],
+                    title: "Datos Laborales"
+                },
+                {
+                    name: "datos_curso",
+                    elements: [
+                        {
+                            type: "dropdown",
+                            name: "curso_id",
+                            title: "Seleccione el Curso",
+                            choices: cursos.map(c => ({value: c.id, text: `${c.tema} - ${c.fecha_curso}`})),
+                            required: true
+                        },
+                        {
+                            type: "dropdown",
+                            name: "encuentras",
+                            title: "¿En donde te encuentras?",
+                            choices: ubicaciones.map(u => ({value: u.id, text: u.nombre})),
+                            required: true
+                        },
+                        {
+                            type: "boolean",
+                            name: "registrado",
+                            title: "¿Está registrado en la página de la Escuela Venezolana de Planificación?",
+                            labelTrue: "Sí (recuerde contestar el cuestionario y descargar su certificado)",
+                            labelFalse: "No",
+                            required: true
+                        },
+                        {
+                            type: "text",
+                            name: "telefono",
+                            title: "Teléfono móvil de contacto",
+                            inputType: "tel",
+                            required: true,
+                            validators: [
+                                {
+                                    type: "regex",
+                                    regex: "^[0-9]{11}$",
+                                    text: "Verifique su número de teléfono (11 dígitos)."
+                                }
+                            ]
+                        },
+                        {
+                            type: "text",
+                            name: "otro_telefono",
+                            title: "Otro número de teléfono (opcional)",
+                            inputType: "tel",
+                            validators: [
+                                {
+                                    type: "regex",
+                                    regex: "^[0-9]{11}$",
+                                    text: "El número debe tener 11 dígitos."
+                                }
+                            ]
+                        },
+                        {
+                            type: "comment",
+                            name: "comentario",
+                            title: "Comentarios Adicionales"
+                        }
+                    ],
+                    title: "Datos del Curso"
+                }
+            ],
+            completeText: "Registrar Asistencia"
+        };
+
+        // Configurar SurveyJS
+        window.survey = new Survey.Model(json);
+
+        survey
+            .onServerValidateQuestions.add(function(s, options) {
+                // Opcional: Validación adicional en el cliente antes de enviar
+                // o integración con backend para validación personalizada.
+            });
+
+        survey
+            .onComplete.add(function(sender, options) {
+                // Capturar datos completos del formulario
+                const formData = sender.data;
+
+                // Enviar datos al backend Django
+                fetch('/api/guardar_participacion/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById("surveyResult").innerHTML = "<h3>¡Gracias por registrar su asistencia!</h3>";
+                    } else {
+                        alert("Error: " + (data.error || "No se pudo guardar la participación."));
+                        // Opcional: Mostrar mensaje en la interfaz
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    alert("Ocurrió un error al enviar los datos.");
+                });
+            });
+
+        survey
+            .onValueChanged.add(function(sender, options){
+            // Si cambia la cédula, buscar datos
+            if(options.name === "cedula" && options.value.length >= 7) {
+                fetch(`/api/datos_persona/?cedula=${options.value}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if(data.error) {
+                            // Limpiar campos si no se encuentra
+                            ["nombre", "apellido", "correo", "edad", "profesion", "sexo", "nivel_educativo",
+                             "organizacion", "estado", "coordinacion", "cargo_segen", "cargo", "gerencia", "alianza"].forEach(field => {
+                                sender.setValue(field, null);
+                            });
+                            // Limpiar también los campos dinámicos que dependen de otros
+                            sender.clearValue("gerencia");
+                            sender.clearValue("cargo");
+                            sender.clearValue("cargo_segen");
+                        } else {
+                            // Pre-cargar datos si se encuentra
+                            sender.setValue("nombre", data.nombre);
+                            sender.setValue("apellido", data.apellido);
+                            sender.setValue("correo", data.correo);
+                            sender.setValue("edad", data.edad);
+                            sender.setValue("profesion", data.profesion);
+                            sender.setValue("sexo", data.sexo);
+                            sender.setValue("nivel_educativo", data.nivel_educativo);
+                            sender.setValue("organizacion", data.organizacion);
+                            sender.setValue("estado", data.estado);
+                            sender.setValue("coordinacion", data.coordinacion);
+                            sender.setValue("cargo_segen", data.cargo_segen);
+                            sender.setValue("cargo", data.cargo);
+                            sender.setValue("gerencia", data.gerencia);
+                            sender.setValue("alianza", data.alianza);
+                        }
+                    })
+                    .catch(err => console.error("Error al buscar datos de la persona:", err));
+            }
+        });
+
+        // Renderizar el formulario
+        $("#surveyElement").Survey({ model: survey });
+    </script>
+{% endblock %}
