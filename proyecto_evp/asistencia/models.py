@@ -1,8 +1,9 @@
+# asistencia/models.py
 from django.db import models
 from django.core.exceptions import ValidationError
 
 class Sexo(models.Model):
-    id = models.CharField(max_length=1, primary_key=True)
+    # id es autoincremental por defecto (equivale a INT AUTO_INCREMENT PRIMARY KEY)
     nombre = models.CharField(max_length=25)
 
     def __str__(self):
@@ -10,7 +11,7 @@ class Sexo(models.Model):
 
 class NivelEducativo(models.Model):
     # id es autoincremental por defecto
-    nombre = models.CharField(max_length=50)
+    nombre = models.CharField(max_length=50) # Aumentar si los textos reales son muy largos
 
     def __str__(self):
         return self.nombre
@@ -31,21 +32,23 @@ class Estado(models.Model): # Estados geográficos
 
 class Coordinacion(models.Model):
     # id es autoincremental por defecto
-    nombre = models.CharField(max_length=50)
+    # Aumentar max_length para manejar nombres largos
+    nombre = models.CharField(max_length=100) # Cambiado de 50 a 100
 
     def __str__(self):
         return self.nombre
 
 class Alianza(models.Model):
     # id es autoincremental por defecto
-    nombre = models.TextField()
+    nombre = models.TextField() # TextField puede manejar textos largos si es necesario
 
     def __str__(self):
         return self.nombre
 
 class Gerencia(models.Model):
     # id es autoincremental por defecto
-    nombre = models.CharField(max_length=50)
+    # Aumentar max_length si los nombres del Excel son muy largos
+    nombre = models.CharField(max_length=100) # Cambiado de 50 a 100
     organizacion = models.ForeignKey(Organizacion, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -60,7 +63,8 @@ class CargoSegen(models.Model):
 
 class Cargo(models.Model):
     # id es autoincremental por defecto
-    nombre = models.CharField(max_length=50)
+    # Aumentar max_length si los nombres del Excel/XLSForm son muy largos
+    nombre = models.CharField(max_length=100) # Cambiado de 50 a 100
     gerencia_contexto = models.ForeignKey(Gerencia, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
@@ -82,14 +86,14 @@ class Curso(models.Model):
         return f"{self.tema} - {self.fecha_curso.strftime('%d/%m/%Y')}"
 
 class Persona(models.Model):
-    cedula = models.CharField(max_length=8, primary_key=True)
+    cedula = models.CharField(max_length=8, primary_key=True) # Este SI debe ser la PK
     nombre = models.CharField(max_length=50)
     apellido = models.CharField(max_length=50)
     correo = models.EmailField(max_length=100, blank=True, null=True)
     edad = models.IntegerField(null=True, blank=True) # Permitir nulos si no se conoce
     profesion = models.CharField(max_length=100, blank=True, null=True)
-    sexo = models.ForeignKey(Sexo, on_delete=models.CASCADE)
-    nivel_educativo = models.ForeignKey(NivelEducativo, on_delete=models.CASCADE)
+    sexo = models.ForeignKey(Sexo, on_delete=models.CASCADE) # FK a la tabla Sexo
+    nivel_educativo = models.ForeignKey(NivelEducativo, on_delete=models.CASCADE) # FK a la tabla NivelEducativo
 
     def __str__(self):
         return f"{self.nombre} {self.apellido} ({self.cedula})"
@@ -100,7 +104,7 @@ class Persona(models.Model):
             raise ValidationError('La edad debe estar entre 1 y 99.')
 
 class PerfilLaboral(models.Model):
-    cedula = models.OneToOneField(Persona, on_delete=models.CASCADE, primary_key=True)
+    cedula = models.OneToOneField(Persona, on_delete=models.CASCADE, primary_key=True) # PK es la FK a Persona
     organizacion = models.ForeignKey(Organizacion, on_delete=models.CASCADE)
     estado = models.ForeignKey(Estado, on_delete=models.SET_NULL, null=True, blank=True)
     coordinacion = models.ForeignKey(Coordinacion, on_delete=models.SET_NULL, null=True, blank=True)

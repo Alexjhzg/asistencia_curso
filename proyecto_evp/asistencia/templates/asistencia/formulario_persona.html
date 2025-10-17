@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Formulario de Perfil Laboral</title>
+  <style>
+    .hidden { display: none; }
+  </style>
+</head>
+<body class="bg-gray-50 p-6">
+  <div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold mb-6 text-gray-800">Registro de Perfil Laboral</h2>
+
+    <form id="perfilForm" class="space-y-4">
+      <!-- Cédula -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Cédula</label>
+        <input type="text" id="cedula" name="cedula" required
+               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        <p id="mensaje-cedula" class="mt-1 text-sm text-red-600 hidden"></p>
+      </div>
+
+      <!-- Nombre -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Nombre</label>
+        <input type="text" id="nombre" name="nombre" required
+               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+      </div>
+
+      <!-- Apellido -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Apellido</label>
+        <input type="text" id="apellido" name="apellido" required
+               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+      </div>
+
+      <!-- Cargo -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Cargo</label>
+        <input type="text" id="cargo" name="cargo" required
+               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+      </div>
+
+      <!-- Tipo de INE -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Tipo de INE</label>
+        <select id="tipo_ine" name="tipo_ine" required
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+          <option value="">-- Seleccione --</option>
+          <option value="central">INE Central</option>
+          <option value="estadal">INE Estadal</option>
+        </select>
+      </div>
+
+      <!-- Coordinación (solo si INE Central) -->
+      <div id="campo-coordinacion" class="hidden">
+        <label class="block text-sm font-medium text-gray-700">Coordinación</label>
+        <select id="coordinacion" name="coordinacion"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+          <option value="">-- Seleccione Coordinación --</option>
+          <option value="norte">Norte</option>
+          <option value="sur">Sur</option>
+          <option value="este">Este</option>
+          <option value="oeste">Oeste</option>
+        </select>
+      </div>
+
+      <!-- Estado (solo si INE Estadal) -->
+      <div id="campo-estado" class="hidden">
+        <label class="block text-sm font-medium text-gray-700">Estado</label>
+        <select id="estado" name="estado"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+          <option value="">-- Seleccione Estado --</option>
+          <option value="monagas">Monagas</option>
+          <option value="bolivar">Bolívar</option>
+          <option value="zulia">Zulia</option>
+          <option value="caracas">Caracas</option>
+          <!-- Agrega más según tu lista -->
+        </select>
+      </div>
+
+      <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        Guardar
+      </button>
+    </form>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const cedulaInput = document.getElementById('cedula');
+      const mensajeCedula = document.getElementById('mensaje-cedula');
+      const tipoIneSelect = document.getElementById('tipo_ine');
+      const campoCoordinacion = document.getElementById('campo-coordinacion');
+      const campoEstado = document.getElementById('campo-estado');
+      const coordinacionSelect = document.getElementById('coordinacion');
+      const estadoSelect = document.getElementById('estado');
+
+      // Lógica condicional para tipo_ine
+      tipoIneSelect.addEventListener('change', () => {
+        if (tipoIneSelect.value === 'central') {
+          campoCoordinacion.classList.remove('hidden');
+          campoEstado.classList.add('hidden');
+          estadoSelect.value = '';
+          coordinacionSelect.required = true;
+          estadoSelect.required = false;
+        } else if (tipoIneSelect.value === 'estadal') {
+          campoEstado.classList.remove('hidden');
+          campoCoordinacion.classList.add('hidden');
+          coordinacionSelect.value = '';
+          estadoSelect.required = true;
+          coordinacionSelect.required = false;
+        } else {
+          campoCoordinacion.classList.add('hidden');
+          campoEstado.classList.add('hidden');
+          coordinacionSelect.required = false;
+          estadoSelect.required = false;
+        }
+      });
+
+      // Autocompletado por cédula
+      cedulaInput.addEventListener('blur', async () => {
+        const cedula = cedulaInput.value.trim();
+        mensajeCedula.classList.add('hidden');
+        mensajeCedula.textContent = '';
+
+        if (!cedula) return;
+
+        try {
+          const response = await fetch(`/api/personas/${cedula}/`);
+          if (response.ok) {
+            const data = await response.json();
+            document.getElementById('nombre').value = data.nombre || '';
+            document.getElementById('apellido').value = data.apellido || '';
+            document.getElementById('cargo').value = data.cargo || '';
+            
+            // Establecer tipo_ine y disparar el evento 'change'
+            tipoIneSelect.value = data.tipo_ine || '';
+            tipoIneSelect.dispatchEvent(new Event('change'));
+
+            // Asignar valores condicionales
+            if (data.tipo_ine === 'central') {
+              coordinacionSelect.value = data.coordinacion || '';
+            } else if (data.tipo_ine === 'estadal') {
+              estadoSelect.value = data.estado || '';
+            }
+          } else {
+            const errorData = await response.json();
+            mensajeCedula.textContent = errorData.error || 'Cédula no encontrada';
+            mensajeCedula.classList.remove('hidden');
+            // Limpiar campos si no se encuentra
+            ['nombre', 'apellido', 'cargo'].forEach(id => document.getElementById(id).value = '');
+            tipoIneSelect.value = '';
+            tipoIneSelect.dispatchEvent(new Event('change'));
+          }
+        } catch (err) {
+          console.error('Error al buscar cédula:', err);
+          mensajeCedula.textContent = 'Error de conexión al buscar la cédula';
+          mensajeCedula.classList.remove('hidden');
+        }
+      });
+
+      // Opcional: Validación al enviar
+      document.getElementById('perfilForm').addEventListener('submit', (e) => {
+        // Puedes agregar validación adicional aquí si lo deseas
+        console.log('Formulario enviado');
+      });
+    });
+  </script>
+</body>
+</html>
